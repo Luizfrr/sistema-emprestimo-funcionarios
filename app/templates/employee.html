@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% set is_edit = modo == 'edit' %}
+{% set tel_string = (funcionario.telefones | map(attribute='numero') | join(', ')) if funcionario else '' %}
+{% set email_string = (funcionario.emails | map(attribute='email') | join(', ')) if funcionario else '' %}
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h1 class="h4 mb-4">{{ 'Editar colaborador' if is_edit else 'Cadastro de Colaborador' }}</h1>
+
+        <form method="post" action="{{ url_for('editar_funcionario', id_usuario=funcionario.id_usuario) if is_edit else url_for('criar_funcionario') }}" class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Nome *</label>
+                <input class="form-control" name="nome" required value="{{ form.get('nome', funcionario.usuario.nome if funcionario else '') }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">E-mail de login *</label>
+                <input class="form-control" type="email" name="email" required value="{{ form.get('email', funcionario.usuario.email if funcionario else '') }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Senha {{ '' if not is_edit else '(preencha para alterar)' }}</label>
+                <input class="form-control" type="password" name="senha" {% if not is_edit %}required{% endif %}>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">CPF *</label>
+                <input class="form-control" name="cpf" required value="{{ form.get('cpf', funcionario.cpf if funcionario else '') }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Data de nascimento *</label>
+                <input class="form-control" type="date" name="data_nascimento" required value="{{ form.get('data_nascimento', funcionario.data_nascimento.isoformat() if funcionario else '') }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Telefone(s)</label>
+                <input class="form-control" name="telefones" placeholder="Ex.: (11) 99999-9999, (11) 3333-3333" value="{{ form.get('telefones', tel_string) }}">
+                <div class="form-text">Use vírgula para separar mais de um telefone.</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">E-mail(s) adicional(is)</label>
+                <input class="form-control" name="emails_adicionais" placeholder="Ex.: outro@email.com" value="{{ form.get('emails_adicionais', email_string) }}">
+                <div class="form-text">Campo multivalorado conforme o modelo.</div>
+            </div>
+            <div class="col-12">
+                <label class="form-label">Endereço *</label>
+                <input class="form-control" name="endereco" required value="{{ form.get('endereco', funcionario.endereco if funcionario else '') }}">
+            </div>
+            <div class="col-12 d-flex gap-2">
+                <button class="btn btn-primary" type="submit">{{ 'Atualizar' if is_edit else 'Salvar' }}</button>
+                <a class="btn btn-outline-secondary" href="{{ url_for('listar_funcionarios') }}">Voltar para listagem</a>
+                {% if not is_edit %}
+                <button class="btn btn-outline-dark" type="reset">Limpar</button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
