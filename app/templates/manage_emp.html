@@ -38,20 +38,20 @@
                 </thead>
                 <tbody>
                 {% for f in funcionarios %}
-                    <tr>
-                        <td>{{ f.id_usuario }}</td>
-                        <td>{{ f.usuario.nome }}</td>
-                        <td>{{ f.cpf }}</td>
-                        <td>{{ f.usuario.email }}</td>
-                        <td>{{ f.data_nascimento.strftime('%d/%m/%Y') }}</td>
-                        <td>{{ f.telefones | map(attribute='numero') | join(', ') }}</td>
-                        <td>{{ f.emails | map(attribute='email') | join(', ') }}</td>
-                        <td>{{ f.endereco }}</td>
-                        <td class="text-end text-nowrap">
-                            <a class="btn btn-sm btn-warning" href="{{ url_for('editar_funcionario', id_usuario=f.id_usuario) }}">Editar</a>
-                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#modalExcluir{{ f.id_usuario }}">Excluir</button>
-                        </td>
-                    </tr>
+                <tr>
+                    <td>{{ f.id_usuario }}</td>
+                    <td>{{ f.usuario.nome }}</td>
+                    <td>{{ f.cpf }}</td>
+                    <td>{{ f.usuario.email }}</td>
+                    <td>{{ f.data_nascimento.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ f.telefones | map(attribute='numero') | join(', ') }}</td>
+                    <td>{{ f.emails | map(attribute='email') | join(', ') }}</td>
+                    <td>{{ f.endereco }}</td>
+                    <td class="text-end text-nowrap">
+                        <a class="btn btn-sm btn-warning" href="{{ url_for('editar_funcionario', id_usuario=f.id_usuario) }}">Editar</a>
+                        <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#modalExcluir{{ f.id_usuario }}">Excluir</button>
+                    </td>
+                </tr>
 
                     <div class="modal fade" id="modalExcluir{{ f.id_usuario }}" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered">
@@ -73,9 +73,9 @@
                         </div>
                     </div>
                 {% else %}
-                    <tr>
-                        <td colspan="9" class="text-center text-muted py-4">Nenhum colaborador encontrado.</td>
-                    </tr>
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-4">Nenhum colaborador encontrado.</td>
+                </tr>
                 {% endfor %}
                 </tbody>
             </table>

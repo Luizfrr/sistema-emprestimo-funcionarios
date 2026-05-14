@@ -11,4 +11,4 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 
 db = SQLAlchemy(app)
 
-from app import routes  # noqa: E402,F401
+from app import routes  

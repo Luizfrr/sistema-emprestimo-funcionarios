@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% set is_edit = modo == 'edit' %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h1 class="h4 mb-4">{{ 'Editar Equipamento' if is_edit else 'Cadastro de Equipamento' }}</h1>
+
+        <form method="post" action="{{ url_for('editar_equipamento', id_equipamento=equipamento.id_equipamento) if is_edit else url_for('criar_equipamento') }}" class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Nome do Equipamento *</label>
+                <input class="form-control" name="nome" required value="{{ form.get('nome', equipamento.nome if equipamento else '') }}">
+            </div>
+            
+            <div class="col-md-6">
+                <label class="form-label">Marca *</label>
+                <input class="form-control" name="marca" required value="{{ form.get('marca', equipamento.marca if equipamento else '') }}">
+            </div>
+            
+            <div class="col-md-6">
+                <label class="form-label">Categoria *</label>
+                <select class="form-select" name="categoria" required>
+                    <option value="">Selecione uma categoria</option>
+                    {% set categorias = ['Proteção da Cabeça', 'Proteção Respiratória', 'Proteção Auditiva', 'Proteção Ocular', 'Proteção de Mãos', 'Proteção de Pés', 'Vestimentas', 'Proteção Contra Quedas'] %}
+                    {% for cat in categorias %}
+                    <option value="{{ cat }}" {% if (form.get('categoria') or (equipamento.categoria if equipamento else '')) == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-6">
+                <label class="form-label">Quantidade Total *</label>
+                <input class="form-control" type="number" name="quantidade_total" min="0" required value="{{ form.get('quantidade_total', equipamento.quantidade_total if equipamento else '') }}">
+            </div>
+            
+            <div class="col-md-4">
+                <label class="form-label">Tamanho</label>
+                <input class="form-control" name="tamanho" placeholder="Ex.: Único, PP, P, M, G, GG" value="{{ form.get('tamanho', equipamento.tamanho if equipamento else '') }}">
+            </div>
+            
+            <div class="col-md-4">
+                <label class="form-label">Peso</label>
+                <input class="form-control" name="peso" placeholder="Ex.: 500g, 1kg" value="{{ form.get('peso', equipamento.peso if equipamento else '') }}">
+            </div>
+            
+            <div class="col-md-4">
+                <label class="form-label">Validade</label>
+                <input class="form-control" type="date" name="validade" value="{{ form.get('validade', equipamento.validade.isoformat() if equipamento and equipamento.validade else '') }}">
+            </div>
+            
+            <div class="col-12">
+                <label class="form-label">Descrição</label>
+                <textarea class="form-control" name="descricao" rows="4" placeholder="Descrição detalhada do equipamento...">{{ form.get('descricao', equipamento.descricao if equipamento else '') }}</textarea>
+            </div>
+            
+            <div class="col-12 d-flex gap-2">
+                <button class="btn btn-primary" type="submit">{{ 'Atualizar' if is_edit else 'Cadastrar' }}</button>
+                <a class="btn btn-outline-secondary" href="{{ url_for('listar_equipamentos') }}">Cancelar</a>
+                {% if not is_edit %}
+                <button class="btn btn-outline-dark" type="reset">Limpar</button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

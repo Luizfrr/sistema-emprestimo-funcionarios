@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4"><i class="bi bi-speedometer2"></i> Dashboard</h2>
+    
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Colaboradores</h6>
+                            <h2 class="mb-0">{{ total_funcionarios }}</h2>
+                        </div>
+                        <i class="bi bi-people-fill fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Equipamentos</h6>
+                            <h2 class="mb-0">{{ total_equipamentos }}</h2>
+                        </div>
+                        <i class="bi bi-tools fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Empréstimos Ativos</h6>
+                            <h2 class="mb-0">{{ emprestimos_ativos }}</h2>
+                        </div>
+                        <i class="bi bi-clipboard-check fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Empréstimos Atrasados</h6>
+                            <h2 class="mb-0">{{ emprestimos_atrasados }}</h2>
+                        </div>
+                        <i class="bi bi-exclamation-triangle-fill fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-7 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Últimos Empréstimos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Colaborador</th>
+                                    <th>Data Início</th>
+                                    <th>Previsão</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for emp in ultimos_emprestimos %}
+                                <tr>
+                                    <td>#{{ emp.id_emprestimo }}</td>
+                                    <td>{{ emp.usuario.nome }}</td>
+                                    <td>{{ emp.data_hora_inicio.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td>{{ emp.data_hora_fim_prevista.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td>
+                                        <span class="status-badge status-{{ emp.status }}">
+                                            {{ emp.status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('ver_emprestimo', id_emprestimo=emp.id_emprestimo) }}" class="btn btn-sm btn-info">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center">Nenhum empréstimo registrado</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-5 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Equipamentos com Baixo Estoque</h5>
+                </div>
+                <div class="card-body">
+                    {% if equipamentos_baixo_estoque %}
+                        <div class="list-group">
+                            {% for eq in equipamentos_baixo_estoque %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ eq.nome }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ eq.categoria }} - {{ eq.marca }}</small>
+                                    </div>
+                                    <span class="badge bg-warning rounded-pill">
+                                        Disponível: {{ eq.quantidade_disponivel }}/{{ eq.quantidade_total }}
+                                    </span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-center text-muted mb-0">Todos os equipamentos estão com estoque adequado!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

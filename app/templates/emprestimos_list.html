@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <h2 class="h4 mb-0"><i class="bi bi-clipboard-list"></i> Empréstimos</h2>
+            <a class="btn btn-primary" href="{{ url_for('criar_emprestimo') }}">
+                <i class="bi bi-plus-circle"></i> Novo Empréstimo
+            </a>
+        </div>
+        
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-4">
+                <input class="form-control" type="search" name="q" value="{{ pesquisa }}" placeholder="Pesquisar por colaborador...">
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="status">
+                    <option value="">Todos os status</option>
+                    <option value="ATIVO" {% if status_filtro == 'ATIVO' %}selected{% endif %}>Ativos</option>
+                    <option value="ATRASADO" {% if status_filtro == 'ATRASADO' %}selected{% endif %}>Atrasados</option>
+                    <option value="FINALIZADO" {% if status_filtro == 'FINALIZADO' %}selected{% endif %}>Finalizados</option>
+                    <option value="CANCELADO" {% if status_filtro == 'CANCELADO' %}selected{% endif %}>Cancelados</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-secondary" type="submit">
+                    <i class="bi bi-search"></i> Filtrar
+                </button>
+            </div>
+            {% if pesquisa or status_filtro %}
+            <div class="col-auto">
+                <a class="btn btn-outline-dark" href="{{ url_for('listar_emprestimos') }}">
+                    <i class="bi bi-x-circle"></i> Limpar
+                </a>
+            </div>
+            {% endif %}
+        </form>
+        
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Colaborador</th>
+                        <th>Data Início</th>
+                        <th>Previsão</th>
+                        <th>Devolução</th>
+                        <th>Itens</th>
+                        <th>Status</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for emp in emprestimos %}
+                    <tr>
+                        <td>#{{ emp.id_emprestimo }}</td>
+                        <td>{{ emp.usuario.nome }}</td>
+                        <td>{{ emp.data_hora_inicio.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>{{ emp.data_hora_fim_prevista.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>{{ emp.data_hora_fim_real.strftime('%d/%m/%Y %H:%M') if emp.data_hora_fim_real else '-' }}</td>
+                        <td>{{ emp.itens|length }}</td>
+                        <td>
+                            <span class="status-badge status-{{ emp.status }}">
+                                {{ emp.status_display }}
+                            </span>
+                        </td>
+                        <td class="text-end text-nowrap">
+                            <a class="btn btn-sm btn-info" href="{{ url_for('ver_emprestimo', id_emprestimo=emp.id_emprestimo) }}">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if emp.pode_finalizar %}
+                            <a class="btn btn-sm btn-warning" href="{{ url_for('editar_emprestimo', id_emprestimo=emp.id_emprestimo) }}">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#modalFinalizar{{ emp.id_emprestimo }}">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+                            {% endif %}
+                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#modalExcluir{{ emp.id_emprestimo }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    
+                    <!-- Modal Finalizar -->
+                    <div class="modal fade" id="modalFinalizar{{ emp.id_emprestimo }}" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Finalizar Empréstimo</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    Confirmar a devolução dos equipamentos do empréstimo #{{ emp.id_emprestimo }}?
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    <form method="post" action="{{ url_for('finalizar_emprestimo', id_emprestimo=emp.id_emprestimo) }}">
+                                        <button type="submit" class="btn btn-success">Finalizar</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Modal Excluir -->
+                    <div class="modal fade" id="modalExcluir{{ emp.id_emprestimo }}" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Confirmar exclusão</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    Tem certeza que deseja excluir o empréstimo #{{ emp.id_emprestimo }}?
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    <form method="post" action="{{ url_for('excluir_emprestimo', id_emprestimo=emp.id_emprestimo) }}">
+                                        <button type="submit" class="btn btn-danger">Excluir</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox fs-1"></i><br>
+                            Nenhum empréstimo encontrado.
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-muted mb-0">Mostrando {{ emprestimos|length }} registro(s).</p>
+    </div>
+</div>
+{% endblock %}

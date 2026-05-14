@@ -1,4 +1,5 @@
 from app import db
+from datetime import datetime
 
 
 class Usuario(db.Model):
@@ -60,7 +61,7 @@ class Emprestimo(db.Model):
     __tablename__ = 'emprestimo'
 
     id_emprestimo = db.Column(db.Integer, primary_key=True)
-    data_hora_inicio = db.Column(db.DateTime, nullable=False)
+    data_hora_inicio = db.Column(db.DateTime, nullable=False, default=datetime.now)
     data_hora_fim_prevista = db.Column(db.DateTime, nullable=False)
     data_hora_fim_real = db.Column(db.DateTime, nullable=True)
     status = db.Column(db.String(20), nullable=False, default='ATIVO')
@@ -68,6 +69,25 @@ class Emprestimo(db.Model):
 
     usuario = db.relationship('Usuario', back_populates='emprestimos')
     itens = db.relationship('ItemEmprestimo', back_populates='emprestimo', cascade='all, delete-orphan')
+    
+    @property
+    def status_display(self):
+        status_map = {
+            'ATIVO': 'Ativo',
+            'FINALIZADO': 'Finalizado',
+            'ATRASADO': 'Atrasado',
+            'CANCELADO': 'Cancelado'
+        }
+        return status_map.get(self.status, self.status)
+    
+    @property
+    def pode_finalizar(self):
+        return self.status in ['ATIVO', 'ATRASADO']
+    
+    def verificar_atraso(self):
+        if self.status == 'ATIVO' and datetime.now() > self.data_hora_fim_prevista:
+            self.status = 'ATRASADO'
+            db.session.commit()
 
 
 class Equipamento(db.Model):
@@ -84,6 +104,16 @@ class Equipamento(db.Model):
     validade = db.Column(db.Date, nullable=True)
 
     itens = db.relationship('ItemEmprestimo', back_populates='equipamento')
+    
+    @property
+    def quantidade_disponivel(self):
+        emprestado = db.session.query(db.func.sum(ItemEmprestimo.quantidade)).join(
+            Emprestimo, ItemEmprestimo.id_emprestimo == Emprestimo.id_emprestimo
+        ).filter(
+            ItemEmprestimo.id_equipamento == self.id_equipamento,
+            Emprestimo.status.in_(['ATIVO', 'ATRASADO'])
+        ).scalar() or 0
+        return self.quantidade_total - emprestado
 
 
 class ItemEmprestimo(db.Model):

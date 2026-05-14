@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% set is_edit = modo == 'edit' %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h1 class="h4 mb-4">
+            <i class="bi bi-{{ 'pencil-square' if is_edit else 'plus-circle' }}"></i>
+            {{ 'Editar Empréstimo' if is_edit else 'Novo Empréstimo' }}
+        </h1>
+        
+        <form method="post" id="formEmprestimo">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Colaborador *</label>
+                    <select class="form-select" name="id_usuario" required {% if is_edit %}disabled{% endif %}>
+                        <option value="">Selecione um colaborador</option>
+                        {% for colab in colaboradores %}
+                        <option value="{{ colab.id_usuario }}" 
+                                {% if emprestimo and emprestimo.id_usuario == colab.id_usuario %}selected{% endif %}>
+                            {{ colab.usuario.nome }} - CPF: {{ colab.cpf }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if is_edit %}
+                    <input type="hidden" name="id_usuario" value="{{ emprestimo.id_usuario }}">
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Data/Hora Prevista para Devolução *</label>
+                    <input type="datetime-local" class="form-control" name="data_hora_fim_prevista" required
+                           value="{% if emprestimo %}{{ emprestimo.data_hora_fim_prevista.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+                </div>
+            </div>
+            
+            <h5 class="mt-3 mb-3">Itens do Empréstimo</h5>
+            <div id="itens-container">
+                {% if emprestimo and emprestimo.itens %}
+                    {% for item in emprestimo.itens %}
+                    <div class="row item-row mb-2">
+                        <div class="col-md-5">
+                            <select class="form-select equipamento-select" name="equipamento_id[]" required>
+                                <option value="">Selecione um equipamento</option>
+                                {% for eq in equipamentos %}
+                                <option value="{{ eq.id_equipamento }}" 
+                                        data-estoque="{{ eq.quantidade_disponivel if not is_edit else eq.quantidade_total }}"
+                                        {% if item.id_equipamento == eq.id_equipamento %}selected{% endif %}>
+                                    {{ eq.nome }} ({{ eq.categoria }}) - Disponível: {{ eq.quantidade_disponivel if not is_edit else eq.quantidade_total }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="number" class="form-control quantidade-input" name="quantidade[]" 
+                                   placeholder="Quantidade" required min="1" value="{{ item.quantidade }}">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" name="observacao[]" placeholder="Observação (opcional)" value="{{ item.observacao }}">
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-danger btn-sm remover-item">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="row item-row mb-2">
+                        <div class="col-md-5">
+                            <select class="form-select equipamento-select" name="equipamento_id[]" required>
+                                <option value="">Selecione um equipamento</option>
+                                {% for eq in equipamentos %}
+                                <option value="{{ eq.id_equipamento }}" data-estoque="{{ eq.quantidade_disponivel }}">
+                                    {{ eq.nome }} ({{ eq.categoria }}) - Disponível: {{ eq.quantidade_disponivel }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="number" class="form-control quantidade-input" name="quantidade[]" 
+                                   placeholder="Quantidade" required min="1">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" name="observacao[]" placeholder="Observação (opcional)">
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-danger btn-sm remover-item">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="row mt-2 mb-4">
+                <div class="col-12">
+                    <button type="button" class="btn btn-secondary" id="adicionar-item">
+                        <i class="bi bi-plus-circle"></i> Adicionar Item
+                    </button>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" type="submit">
+                    <i class="bi bi-save"></i> {{ 'Atualizar' if is_edit else 'Salvar' }}
+                </button>
+                <a class="btn btn-outline-secondary" href="{{ url_for('listar_emprestimos') }}">
+                    <i class="bi bi-arrow-left"></i> Voltar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('adicionar-item').addEventListener('click', function() {
+    const container = document.getElementById('itens-container');
+    const template = document.querySelector('.item-row').cloneNode(true);
+    
+    // Limpar valores
+    template.querySelector('.equipamento-select').value = '';
+    template.querySelector('.quantidade-input').value = '';
+    template.querySelector('input[name="observacao[]"]').value = '';
+    
+    container.appendChild(template);
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('remover-item') || e.target.parentElement.classList.contains('remover-item')) {
+        const btn = e.target.classList.contains('remover-item') ? e.target : e.target.parentElement;
+        const row = btn.closest('.item-row');
+        if (document.querySelectorAll('.item-row').length > 1) {
+            row.remove();
+        } else {
+            alert('É necessário ter pelo menos um item no empréstimo!');
+        }
+    }
+});
+
+// Validar quantidade vs estoque
+document.getElementById('formEmprestimo').addEventListener('submit', function(e) {
+    let valid = true;
+    const rows = document.querySelectorAll('.item-row');
+    
+    rows.forEach(row => {
+        const select = row.querySelector('.equipamento-select');
+        const quantidade = parseInt(row.querySelector('.quantidade-input').value);
+        const estoque = parseInt(select.selectedOptions[0].getAttribute('data-estoque'));
+        
+        if (quantidade > estoque) {
+            alert(`Quantidade solicitada para ${select.selectedOptions[0].text} excede o estoque disponível (${estoque})`);
+            valid = false;
+        }
+    });
+    
+    if (!valid) e.preventDefault();
+});
+</script>
+{% endblock %}
