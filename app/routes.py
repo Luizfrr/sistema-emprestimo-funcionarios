@@ -84,16 +84,14 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # Estatísticas para o dashboard
     total_funcionarios = Funcionario.query.count()
     total_equipamentos = Equipamento.query.count()
     emprestimos_ativos = Emprestimo.query.filter(Emprestimo.status.in_(['ATIVO', 'ATRASADO'])).count()
     emprestimos_atrasados = Emprestimo.query.filter_by(status='ATRASADO').count()
     
-    # Últimos empréstimos
     ultimos_emprestimos = Emprestimo.query.order_by(Emprestimo.id_emprestimo.desc()).limit(5).all()
     
-    # Equipamentos com baixo estoque
+    #equipamentos com baixo estoque
     equipamentos_baixo_estoque = []
     for eq in Equipamento.query.all():
         if eq.quantidade_disponivel <= 5 and eq.quantidade_disponivel > 0:
@@ -409,13 +407,11 @@ def criar_emprestimo():
                 flash('Data e hora de devolução prevista são obrigatórias.', 'danger')
                 return redirect(url_for('criar_emprestimo'))
             
-            # Verificar se o usuário existe
             funcionario = Funcionario.query.get(id_usuario)
             if not funcionario:
                 flash('Colaborador não encontrado.', 'danger')
                 return redirect(url_for('criar_emprestimo'))
             
-            # Criar empréstimo
             emprestimo = Emprestimo(
                 id_usuario=id_usuario,
                 data_hora_fim_prevista=data_hora_fim_prevista,
@@ -424,7 +420,6 @@ def criar_emprestimo():
             db.session.add(emprestimo)
             db.session.flush()
             
-            # Adicionar itens
             equipamentos_ids = request.form.getlist('equipamento_id[]')
             quantidades = request.form.getlist('quantidade[]')
             observacoes = request.form.getlist('observacao[]')
@@ -456,7 +451,6 @@ def criar_emprestimo():
             flash(f'Falha ao cadastrar empréstimo: {erro}', 'danger')
             return redirect(url_for('criar_emprestimo'))
     
-    # GET - Carregar formulário
     colaboradores = Funcionario.query.join(Usuario).order_by(Usuario.nome).all()
     equipamentos = Equipamento.query.order_by(Equipamento.nome).all()
     equipamentos_com_estoque = [e for e in equipamentos if e.quantidade_disponivel > 0]
@@ -491,7 +485,6 @@ def editar_emprestimo(id_emprestimo):
             if data_hora_fim_prevista:
                 emprestimo.data_hora_fim_prevista = data_hora_fim_prevista
             
-            # Atualizar itens (remover todos e recriar)
             ItemEmprestimo.query.filter_by(id_emprestimo=id_emprestimo).delete()
             
             equipamentos_ids = request.form.getlist('equipamento_id[]')

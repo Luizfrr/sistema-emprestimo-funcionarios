@@ -129,6 +129,5 @@ class ItemEmprestimo(db.Model):
     equipamento = db.relationship('Equipamento', back_populates='itens')
 
 
-# Compatibilidade com nomes usados anteriormente na tela.
 Funcionario.telefones_rel = Funcionario.telefones
 Funcionario.emails_rel = Funcionario.emails
