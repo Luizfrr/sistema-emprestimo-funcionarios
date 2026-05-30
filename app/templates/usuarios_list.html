@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Controle de Usuários</h1>
+        <p class="text-muted mb-0">Gerencie quem pode acessar o sistema.</p>
+    </div>
+    <a href="{{ url_for('criar_usuario') }}" class="btn btn-dark">
+        <i class="bi bi-person-plus"></i> Novo Usuário
+    </a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-2">
+            <div class="col-md-10">
+                <input type="text" name="q" value="{{ pesquisa }}" class="form-control" placeholder="Pesquisar por nome, e-mail ou tipo">
+            </div>
+            <div class="col-md-2 d-grid">
+                <button class="btn btn-outline-dark" type="submit">
+                    <i class="bi bi-search"></i> Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>Tipo</th>
+                    <th>Status</th>
+                    <th>Último login</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for usuario in usuarios %}
+                <tr>
+                    <td>{{ usuario.nome }}</td>
+                    <td>{{ usuario.email }}</td>
+                    <td><span class="badge bg-secondary">{{ usuario.tipo }}</span></td>
+                    <td>
+                        {% if usuario.ativo %}
+                            <span class="badge bg-success">Ativo</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inativo</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ usuario.ultimo_login.strftime('%d/%m/%Y %H:%M') if usuario.ultimo_login else '-' }}</td>
+                    <td class="text-end">
+                        <a href="{{ url_for('editar_usuario', id_usuario=usuario.id_usuario) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        {% if session.get('usuario_id') != usuario.id_usuario %}
+                        <form method="post" action="{{ url_for('excluir_usuario', id_usuario=usuario.id_usuario) }}" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este usuário?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> Excluir
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">Nenhum usuário encontrado.</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

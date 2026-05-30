@@ -21,7 +21,7 @@
                 <input class="form-control" type="password" name="senha" {% if not is_edit %}required{% endif %}>
             </div>
             <div class="col-md-4">
-                <label class="form-label">CPF *</label>
+                <label class="form-label">CPF/CNPJ *</label>
                 <input class="form-control" name="cpf" required value="{{ form.get('cpf', funcionario.cpf if funcionario else '') }}">
             </div>
             <div class="col-md-4">

@@ -31,7 +31,7 @@ Dentro da pasta do projeto:
 ```powershell
 python -m venv venv
 .\venv\Scripts\activate
-python -m pip install -r requirements.txt
+pip install -r requirements.txt
 python main.py
 ```
 
@@ -107,7 +107,7 @@ Fluxo recomendado para apresentação:
 ```powershell
 python -m venv venv
 .\venv\Scripts\activate
-python -m pip install -r requirements.txt
+pip install -r requirements.txt
 flask --app main.py db upgrade
 python create_admin.py
 python main.py

@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">{{ 'Novo Usuário' if modo == 'create' else 'Editar Usuário' }}</h1>
+        <p class="text-muted mb-0">Usuários cadastrados aqui podem acessar o sistema com login e senha.</p>
+    </div>
+    <a href="{{ url_for('listar_usuarios') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Voltar
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="post">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Nome</label>
+                    <input type="text" name="nome" class="form-control" required minlength="3" maxlength="100" autocomplete="name" value="{{ form.get('nome') if form else (usuario.nome if usuario else '') }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">E-mail</label>
+                    <input type="email" name="email" class="form-control" required maxlength="120" autocomplete="email" placeholder="nome@email.com" value="{{ form.get('email') if form else (usuario.email if usuario else '') }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Senha</label>
+                    <input type="password" name="senha" class="form-control" minlength="6" autocomplete="new-password" {% if modo == 'create' %}required{% endif %}>
+                    {% if modo == 'edit' %}
+                        <small class="text-muted">Deixe em branco para manter a senha atual.</small>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Tipo</label>
+                    <input type="text" class="form-control" value="{{ {'ADMIN':'Administrador','COLABORADOR':'Colaborador','USUARIO':'Usuário'}.get(usuario.tipo if usuario else 'USUARIO', 'Usuário') }}" disabled>
+                    <div class="form-text">Novos cadastros nesta tela são sempre do tipo Usuário.</div>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    {% set ativo_atual = (form.get('ativo') is not none) if form else (usuario.ativo if usuario else True) %}
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" role="switch" name="ativo" id="ativo" {% if ativo_atual %}checked{% endif %}>
+                        <label class="form-check-label" for="ativo">Usuário ativo</label>
+                    </div>
+                </div>
+            </div>
+
+            <hr>
+            <button type="submit" class="btn btn-dark">
+                <i class="bi bi-save"></i> Salvar
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h1 class="h3 text-center mb-2"><i class="bi bi-person-plus"></i> Criar conta</h1>
+                <p class="text-muted text-center mb-4">Cadastre-se para pedir empréstimos e acompanhar seus próprios EPIs.</p>
+
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Nome</label>
+                        <input type="text" name="nome" class="form-control" required minlength="3" maxlength="100" autocomplete="name" value="{{ form.get('nome', '') }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">E-mail</label>
+                        <input type="email" name="email" class="form-control" required maxlength="120" autocomplete="email" placeholder="nome@email.com" value="{{ form.get('email', '') }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Senha</label>
+                        <input type="password" name="senha" class="form-control" required minlength="6" autocomplete="new-password">
+                        <div class="form-text">Mínimo de 6 caracteres.</div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Confirmar senha</label>
+                        <input type="password" name="confirmar_senha" class="form-control" required minlength="6" autocomplete="new-password">
+                    </div>
+                    <button type="submit" class="btn btn-dark w-100">
+                        <i class="bi bi-person-check"></i> Cadastrar
+                    </button>
+                </form>
+
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('login') }}" class="text-decoration-none">
+                        <i class="bi bi-box-arrow-in-right"></i> Já tenho conta
+                    </a>
+                </div>
+
+                <div class="alert alert-info mt-4 mb-0 small">
+                    <i class="bi bi-info-circle"></i>
+                    Contas criadas por esta tela entram como <strong>Usuário</strong>, com acesso apenas para pedir empréstimos e ver seus próprios empréstimos.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

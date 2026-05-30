@@ -1,5 +1,13 @@
 from app import db
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
+
+
+STATUS_CADASTRO_EMPRESTIMO = ['EMPRESTADO', 'FORNECIDO']
+STATUS_EDICAO_EMPRESTIMO = ['EMPRESTADO', 'FORNECIDO', 'DEVOLVIDO', 'DANIFICADO', 'PERDIDO']
+STATUS_COM_DEVOLUCAO = ['DEVOLVIDO', 'DANIFICADO', 'PERDIDO']
+STATUS_BAIXA_ESTOQUE = ['EMPRESTADO', 'FORNECIDO', 'DANIFICADO', 'PERDIDO']
+
 
 
 class Usuario(db.Model):
@@ -9,7 +17,10 @@ class Usuario(db.Model):
     nome = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), nullable=False, unique=True)
     senha = db.Column(db.String(255), nullable=False)
-    tipo = db.Column(db.String(30), nullable=False, default='FUNCIONARIO')
+    tipo = db.Column(db.String(30), nullable=False, default='USUARIO')
+    ativo = db.Column(db.Boolean, nullable=False, default=True)
+    criado_em = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    ultimo_login = db.Column(db.DateTime, nullable=True)
 
     funcionario = db.relationship(
         'Funcionario',
@@ -18,6 +29,22 @@ class Usuario(db.Model):
         uselist=False,
     )
     emprestimos = db.relationship('Emprestimo', back_populates='usuario', cascade='all, delete-orphan')
+    equipamentos_criados = db.relationship('Equipamento', back_populates='criador')
+
+    @property
+    def is_admin(self):
+        return self.tipo == 'ADMIN'
+
+    def definir_senha(self, senha_plana):
+        self.senha = generate_password_hash(senha_plana)
+
+    def conferir_senha(self, senha_plana):
+        if not self.senha:
+            return False
+        # Compatibilidade com os usuários antigos que estavam com senha em texto puro.
+        if self.senha.startswith(('pbkdf2:', 'scrypt:')):
+            return check_password_hash(self.senha, senha_plana)
+        return self.senha == senha_plana
 
 
 class Funcionario(db.Model):
@@ -28,7 +55,7 @@ class Funcionario(db.Model):
         db.ForeignKey('usuario.id_usuario', ondelete='CASCADE'),
         primary_key=True,
     )
-    cpf = db.Column(db.String(14), nullable=False, unique=True)
+    cpf = db.Column(db.String(18), nullable=False, unique=True)  # CPF ou CNPJ
     data_nascimento = db.Column(db.Date, nullable=False)
     endereco = db.Column(db.String(150), nullable=False)
 
@@ -64,7 +91,8 @@ class Emprestimo(db.Model):
     data_hora_inicio = db.Column(db.DateTime, nullable=False, default=datetime.now)
     data_hora_fim_prevista = db.Column(db.DateTime, nullable=False)
     data_hora_fim_real = db.Column(db.DateTime, nullable=True)
-    status = db.Column(db.String(20), nullable=False, default='ATIVO')
+    observacao_devolucao = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='EMPRESTADO')
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario', ondelete='CASCADE'), nullable=False)
 
     usuario = db.relationship('Usuario', back_populates='emprestimos')
@@ -73,21 +101,26 @@ class Emprestimo(db.Model):
     @property
     def status_display(self):
         status_map = {
-            'ATIVO': 'Ativo',
-            'FINALIZADO': 'Finalizado',
-            'ATRASADO': 'Atrasado',
-            'CANCELADO': 'Cancelado'
+            'EMPRESTADO': 'Emprestado',
+            'FORNECIDO': 'Fornecido',
+            'DEVOLVIDO': 'Devolvido',
+            'DANIFICADO': 'Danificado',
+            'PERDIDO': 'Perdido'
         }
         return status_map.get(self.status, self.status)
+
+    @property
+    def exige_devolucao(self):
+        return self.status in STATUS_COM_DEVOLUCAO
     
     @property
     def pode_finalizar(self):
-        return self.status in ['ATIVO', 'ATRASADO']
+        return self.status == 'EMPRESTADO'
     
     def verificar_atraso(self):
-        if self.status == 'ATIVO' and datetime.now() > self.data_hora_fim_prevista:
-            self.status = 'ATRASADO'
-            db.session.commit()
+        # A atividade avaliativa não pede um status "atrasado".
+        # Mantido apenas para compatibilidade com chamadas antigas.
+        return False
 
 
 class Equipamento(db.Model):
@@ -102,7 +135,9 @@ class Equipamento(db.Model):
     tamanho = db.Column(db.String(50), nullable=True)
     peso = db.Column(db.String(50), nullable=True)
     validade = db.Column(db.Date, nullable=True)
+    id_usuario_criador = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario'), nullable=True)
 
+    criador = db.relationship('Usuario', back_populates='equipamentos_criados')
     itens = db.relationship('ItemEmprestimo', back_populates='equipamento')
     
     @property
@@ -111,7 +146,7 @@ class Equipamento(db.Model):
             Emprestimo, ItemEmprestimo.id_emprestimo == Emprestimo.id_emprestimo
         ).filter(
             ItemEmprestimo.id_equipamento == self.id_equipamento,
-            Emprestimo.status.in_(['ATIVO', 'ATRASADO'])
+            Emprestimo.status.in_(STATUS_BAIXA_ESTOQUE)
         ).scalar() or 0
         return self.quantidade_total - emprestado
 

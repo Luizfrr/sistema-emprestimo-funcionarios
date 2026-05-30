@@ -1,13 +1,30 @@
 {% extends 'base.html' %}
 {% set is_edit = modo == 'edit' %}
 
+{% macro nome_status(st) -%}
+    {%- if st == 'EMPRESTADO' -%}Emprestado
+    {%- elif st == 'FORNECIDO' -%}Fornecido
+    {%- elif st == 'DEVOLVIDO' -%}Devolvido
+    {%- elif st == 'DANIFICADO' -%}Danificado
+    {%- elif st == 'PERDIDO' -%}Perdido
+    {%- else -%}{{ st }}
+    {%- endif -%}
+{%- endmacro %}
+
 {% block content %}
 <div class="card shadow-sm">
     <div class="card-body">
         <h1 class="h4 mb-4">
             <i class="bi bi-{{ 'pencil-square' if is_edit else 'plus-circle' }}"></i>
-            {{ 'Editar Empréstimo' if is_edit else 'Novo Empréstimo' }}
+            {{ 'Atualizar Status do Empréstimo' if is_edit else 'Novo Empréstimo de EPI' }}
         </h1>
+
+        {% if is_edit %}
+        <div class="alert alert-info">
+            Conforme a ficha de requisitos, nesta tela de edição só é permitido atualizar o status e as informações de devolução.
+            Colaborador, equipamento, data do empréstimo e data prevista ficam bloqueados.
+        </div>
+        {% endif %}
         
         <form method="post" id="formEmprestimo">
             <div class="row">
@@ -16,23 +33,61 @@
                     <select class="form-select" name="id_usuario" required {% if is_edit %}disabled{% endif %}>
                         <option value="">Selecione um colaborador</option>
                         {% for colab in colaboradores %}
+                        {% set pessoa = colab.usuario if colab.usuario is defined else colab %}
                         <option value="{{ colab.id_usuario }}" 
                                 {% if emprestimo and emprestimo.id_usuario == colab.id_usuario %}selected{% endif %}>
-                            {{ colab.usuario.nome }} - CPF: {{ colab.cpf }}
+                            {{ pessoa.nome }}{% if colab.cpf is defined %} - CPF/CNPJ: {{ colab.cpf }}{% endif %}
                         </option>
                         {% endfor %}
                     </select>
-                    {% if is_edit %}
-                    <input type="hidden" name="id_usuario" value="{{ emprestimo.id_usuario }}">
-                    {% endif %}
                 </div>
+
+                {% if is_edit %}
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Data/Hora do Empréstimo</label>
+                    <input type="datetime-local" class="form-control" disabled
+                           value="{{ datetime_local(emprestimo.data_hora_inicio) }}">
+                </div>
+                {% endif %}
                 
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Data/Hora Prevista para Devolução *</label>
                     <input type="datetime-local" class="form-control" name="data_hora_fim_prevista" required
+                           {% if is_edit %}disabled{% endif %}
                            value="{% if emprestimo %}{{ emprestimo.data_hora_fim_prevista.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+                    {% if not is_edit %}
+                    <div class="form-text">A data prevista precisa ser posterior à data e hora atuais.</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Status *</label>
+                    <select class="form-select" name="status" id="statusEmprestimo" required>
+                        {% for st in status_opcoes %}
+                        <option value="{{ st }}" {% if emprestimo and emprestimo.status == st %}selected{% endif %}>
+                            {{ nome_status(st) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if not is_edit %}
+                    <div class="form-text">No cadastro aparecem apenas Emprestado e Fornecido.</div>
+                    {% endif %}
                 </div>
             </div>
+
+            {% if is_edit %}
+            <div class="row" id="dadosDevolucao">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Data da Devolução *</label>
+                    <input type="datetime-local" class="form-control" name="data_hora_fim_real" id="dataDevolucao"
+                           value="{{ datetime_local(emprestimo.data_hora_fim_real) }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Observação na Devolução</label>
+                    <textarea class="form-control" name="observacao_devolucao" id="observacaoDevolucao" rows="2" placeholder="Ex.: equipamento devolvido com avaria, EPI perdido, devolução normal...">{{ emprestimo.observacao_devolucao or '' }}</textarea>
+                </div>
+            </div>
+            {% endif %}
             
             <h5 class="mt-3 mb-3">Itens do Empréstimo</h5>
             <div id="itens-container">
@@ -40,28 +95,20 @@
                     {% for item in emprestimo.itens %}
                     <div class="row item-row mb-2">
                         <div class="col-md-5">
-                            <select class="form-select equipamento-select" name="equipamento_id[]" required>
-                                <option value="">Selecione um equipamento</option>
+                            <select class="form-select equipamento-select" name="equipamento_id[]" required disabled>
                                 {% for eq in equipamentos %}
-                                <option value="{{ eq.id_equipamento }}" 
-                                        data-estoque="{{ eq.quantidade_disponivel if not is_edit else eq.quantidade_total }}"
-                                        {% if item.id_equipamento == eq.id_equipamento %}selected{% endif %}>
-                                    {{ eq.nome }} ({{ eq.categoria }}) - Disponível: {{ eq.quantidade_disponivel if not is_edit else eq.quantidade_total }}
+                                <option value="{{ eq.id_equipamento }}" {% if item.id_equipamento == eq.id_equipamento %}selected{% endif %}>
+                                    {{ eq.nome }} ({{ eq.categoria }})
                                 </option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <input type="number" class="form-control quantidade-input" name="quantidade[]" 
-                                   placeholder="Quantidade" required min="1" value="{{ item.quantidade }}">
+                            <input type="number" class="form-control quantidade-input" name="quantidade[]" disabled
+                                   placeholder="Quantidade" min="1" value="{{ item.quantidade }}">
                         </div>
-                        <div class="col-md-3">
-                            <input type="text" class="form-control" name="observacao[]" placeholder="Observação (opcional)" value="{{ item.observacao }}">
-                        </div>
-                        <div class="col-md-1">
-                            <button type="button" class="btn btn-danger btn-sm remover-item">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" name="observacao[]" disabled placeholder="Observação" value="{{ item.observacao }}">
                         </div>
                     </div>
                     {% endfor %}
@@ -93,6 +140,7 @@
                 {% endif %}
             </div>
             
+            {% if not is_edit %}
             <div class="row mt-2 mb-4">
                 <div class="col-12">
                     <button type="button" class="btn btn-secondary" id="adicionar-item">
@@ -100,10 +148,11 @@
                     </button>
                 </div>
             </div>
+            {% endif %}
             
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 mt-4">
                 <button class="btn btn-primary" type="submit">
-                    <i class="bi bi-save"></i> {{ 'Atualizar' if is_edit else 'Salvar' }}
+                    <i class="bi bi-save"></i> {{ 'Atualizar Status' if is_edit else 'Salvar' }}
                 </button>
                 <a class="btn btn-outline-secondary" href="{{ url_for('listar_emprestimos') }}">
                     <i class="bi bi-arrow-left"></i> Voltar
@@ -114,15 +163,31 @@
 </div>
 
 <script>
+const STATUS_COM_DEVOLUCAO = {{ status_com_devolucao|tojson }};
+const form = document.getElementById('formEmprestimo');
+const statusSelect = document.getElementById('statusEmprestimo');
+const dadosDevolucao = document.getElementById('dadosDevolucao');
+const dataDevolucao = document.getElementById('dataDevolucao');
+
+function atualizarCamposDevolucao() {
+    if (!dadosDevolucao) return;
+    const mostrar = STATUS_COM_DEVOLUCAO.includes(statusSelect.value);
+    dadosDevolucao.style.display = mostrar ? '' : 'none';
+    if (dataDevolucao) dataDevolucao.required = mostrar;
+}
+
+if (statusSelect) {
+    statusSelect.addEventListener('change', atualizarCamposDevolucao);
+    atualizarCamposDevolucao();
+}
+
+{% if not is_edit %}
 document.getElementById('adicionar-item').addEventListener('click', function() {
     const container = document.getElementById('itens-container');
     const template = document.querySelector('.item-row').cloneNode(true);
-    
-    // Limpar valores
     template.querySelector('.equipamento-select').value = '';
     template.querySelector('.quantidade-input').value = '';
     template.querySelector('input[name="observacao[]"]').value = '';
-    
     container.appendChild(template);
 });
 
@@ -138,16 +203,28 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Validar quantidade vs estoque
-document.getElementById('formEmprestimo').addEventListener('submit', function(e) {
+form.addEventListener('submit', function(e) {
     let valid = true;
-    const rows = document.querySelectorAll('.item-row');
-    
-    rows.forEach(row => {
+    const dataPrevista = document.querySelector('input[name="data_hora_fim_prevista"]');
+
+    if (dataPrevista && dataPrevista.value) {
+        const escolhida = new Date(dataPrevista.value);
+        const agora = new Date();
+        if (escolhida <= agora) {
+            alert('A data prevista para devolução deve ser posterior à data e hora atuais.');
+            valid = false;
+        }
+    }
+
+    document.querySelectorAll('.item-row').forEach(row => {
         const select = row.querySelector('.equipamento-select');
-        const quantidade = parseInt(row.querySelector('.quantidade-input').value);
-        const estoque = parseInt(select.selectedOptions[0].getAttribute('data-estoque'));
-        
+        const quantidade = parseInt(row.querySelector('.quantidade-input').value || '0');
+        if (!select.value || quantidade <= 0) {
+            alert('Informe equipamento e quantidade para todos os itens.');
+            valid = false;
+            return;
+        }
+        const estoque = parseInt(select.selectedOptions[0].getAttribute('data-estoque') || '0');
         if (quantidade > estoque) {
             alert(`Quantidade solicitada para ${select.selectedOptions[0].text} excede o estoque disponível (${estoque})`);
             valid = false;
@@ -156,5 +233,6 @@ document.getElementById('formEmprestimo').addEventListener('submit', function(e)
     
     if (!valid) e.preventDefault();
 });
+{% endif %}
 </script>
 {% endblock %}

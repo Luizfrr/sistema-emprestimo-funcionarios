@@ -1,0 +1,18 @@
+Migrações do LAB 09
+===================
+
+Este projeto usa Flask-Migrate/Alembic.
+
+Primeira execução em um banco MySQL novo:
+1. Crie o banco no MySQL:
+   CREATE DATABASE controle_epi CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+2. Copie .env.example para .env e ajuste DATABASE_URL.
+3. Rode:
+   flask --app main.py db upgrade
+   python create_admin.py
+   python main.py
+
+Se o professor preferir recriar as migrações:
+   flask --app main.py db init
+   flask --app main.py db migrate -m "lab09 login usuarios mysql"
+   flask --app main.py db upgrade
